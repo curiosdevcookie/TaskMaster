@@ -17,6 +17,7 @@ defmodule TaskMasterWeb.CoreComponents do
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
+  alias TaskMaster.Accounts.User
   import TaskMasterWeb.Gettext
 
   @doc """
@@ -227,6 +228,7 @@ defmodule TaskMasterWeb.CoreComponents do
       class={[
         "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
+        "disabled:opacity-30 disabled:bg-grey-100 disabled:cursor-not-allowed",
         @class
       ]}
       {@rest}
@@ -284,6 +286,9 @@ defmodule TaskMasterWeb.CoreComponents do
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
                 multiple pattern placeholder readonly required rows size step)
 
+  attr(:is_new_password, :boolean, default: false)
+  attr(:password_strength, :integer, required: false)
+
   slot :inner_block
 
   def input(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
@@ -293,6 +298,44 @@ defmodule TaskMasterWeb.CoreComponents do
     |> assign_new(:name, fn -> if assigns.multiple, do: field.name <> "[]", else: field.name end)
     |> assign_new(:value, fn -> field.value end)
     |> input()
+  end
+
+  def input(%{type: "password"} = assigns) do
+    ~H"""
+    <div phx-feedback-for={@name}>
+      <input
+        type={@type}
+        name={@name}
+        id={@id}
+        value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+        {@rest}
+      />
+      <%= if @is_new_password do %>
+        <%= if not Enum.empty?(@errors) do %>
+          <section class="bg-white rounded-md shadow p-4 phx-no-feedback:hidden">
+            <div class="flex flex-col gap-2">
+              <p class="text-black text-sm font-semibold">
+                <%= dgettext("accounts", "Pick a password") %>
+              </p>
+              <section class="border border-gray-200 rounded-md">
+                <div id="password-strength-bar" value={@password_strength} max="100"></div>
+              </section>
+              <p class="text-black text-opacity-50 text-sm font-normal">
+                <%= User.password_strength_to_string(@password_strength) %>
+              </p>
+            </div>
+            <div class="my-4 grow shrink basis-0 h-px bg-zinc-200 border border-zinc-200"></div>
+            <p class="text-black text-opacity-80 text-sm font-normal">
+              <%= dgettext("accounts", "Suggestions") %>
+            </p>
+            <.error :for={msg <- @errors}><%= msg %></.error>
+          </section>
+        <% end %>
+      <% else %>
+        <.error :for={msg <- @errors}><%= msg %></.error>
+      <% end %>
+    </div>
+    """
   end
 
   def input(%{type: "checkbox", value: value} = assigns) do
@@ -359,6 +402,7 @@ defmodule TaskMasterWeb.CoreComponents do
   end
 
   # All other inputs text, datetime-local, url, password, etc. are handled here...
+
   def input(assigns) do
     ~H"""
     <div phx-feedback-for={@name}>
