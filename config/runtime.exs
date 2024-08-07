@@ -58,6 +58,10 @@ if config_env() == :prod do
     static_url: [path: "/"],
     check_origin: ["https://taskmaster.studio"]
 
+  config :task_master, TaskMaster.Repo,
+    url: System.get_env("DATABASE_URL"),
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

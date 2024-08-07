@@ -45,3 +45,6 @@ npm-debug.log
 
 # macOS
 .DS_Store
+
+# stuff
+id_rsa

@@ -1,0 +1,54 @@
+version: "3.1"
+
+services:
+
+  backend:
+    image: docker.io/postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: task_master
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - taskmaster_network
+    ports:
+      - "5432:5432"
+    container_name: taskmaster-db
+    restart: always
+
+  frontend:
+    image: ghcr.io/curiosdevcookie/task_master/irgendwas:alpha
+    environment:
+      POOL_SIZE: "10"
+      PORT: "8080"
+      DATABASE_URL: "ecto://postgres:postgres@backend/task_master"
+      SECRET_KEY_BASE: "F3B4B22B-0BB8-41AC-9C5F-7D2D7C61BC18"
+    networks:
+      - taskmaster_network
+      - traefik_default
+    container_name: taskmaster
+    volumes:
+      - app_data:/app/priv/static/uploads
+    restart: always
+    depends_on:
+    - backend
+    labels:
+    - "traefik.enable=true"
+    - "traefik.docker.network=traefik_default"
+    - "traefik.http.routers.taskmaster-studio.rule=Host(`test.taskmaster.studio`)"
+    - "traefik.http.routers.taskmaster-studio.entrypoints=websecure"
+    - "traefik.http.routers.taskmaster-studio.tls=true"
+    - "traefik.http.routers.taskmaster-studio.tls.certresolver=leresolver"
+    - "traefik.http.services.taskmaster-studio.loadbalancer.server.port=8080"
+
+networks:
+  traefik_default:
+    external: true
+  taskmaster_network:
+    external: false
+
+volumes:
+  db_data:
+  app_data:
